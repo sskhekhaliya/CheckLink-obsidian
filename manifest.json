@@ -1,0 +1,12 @@
+{
+  "id": "obsidian-checklink",
+  "name": "CheckLink",
+  "version": "1.0.0",
+  "minAppVersion": "1.5.0",
+  "description": "Auto-sync checklists and tasks referencing note wikilinks with note completion properties (e.g. completed_date).",
+  "author": "SSKhekhaliya",
+  "authorUrl": "https://www.sskhekhaliya.in/",
+  "fundingUrl": "https://buymeacoffee.com/sskhekhaliya",
+  "isDesktopOnly": false
+}
+

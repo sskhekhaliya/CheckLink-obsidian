@@ -1,0 +1,9 @@
+/* CheckLink Plugin Styles */
+.checklink-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
