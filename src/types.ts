@@ -21,7 +21,7 @@ export interface CheckLinkSettings {
   // - strict: wikilink is the sole content of the task (e.g. "- [ ] [[Chapter 1]]" or "- [ ] [[Chapter 1|Alias]]")
   matchMode: ChecklistMatchMode;
 
-  // Clicking/checking a checkbox in any note writes/removes the completionProperty in the linked note
+  // Clicking/checking a checkbox in any note writes/clears the completionProperty in the linked note
   bidirectional: boolean;
   dateFormat: DateFormatOption;
 

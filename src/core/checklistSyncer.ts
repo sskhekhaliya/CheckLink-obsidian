@@ -104,6 +104,8 @@ export class ChecklistSyncer {
         // Default: 'exists'
         if (typeof val === 'string') {
           if (val.trim().length > 0) return true;
+        } else if (typeof val === 'boolean') {
+          if (val === true) return true;
         } else {
           return true;
         }
@@ -327,9 +329,21 @@ export class ChecklistSyncer {
             frontmatter[propToSet] = this.getFormattedDate();
           }
         } else {
-          // Unchecking: Remove/delete all configured completion properties found in frontmatter
+          // Unchecking: Clear the value of configured completion properties instead of deleting them
+          let cleared = false;
           for (const prop of properties) {
-            delete frontmatter[prop];
+            if (prop in frontmatter) {
+              if (typeof frontmatter[prop] === 'boolean') {
+                frontmatter[prop] = false;
+              } else {
+                frontmatter[prop] = null;
+              }
+              cleared = true;
+            }
+          }
+          if (!cleared && properties.length > 0) {
+            const propToClear = properties[0] || 'completed_date';
+            frontmatter[propToClear] = null;
           }
         }
       });

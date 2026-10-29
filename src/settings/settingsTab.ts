@@ -99,7 +99,7 @@ export class CheckLinkSettingsTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName('Bidirectional sync (Two-way)')
       .setDesc(
-        'When you check/uncheck a task checkbox in any note, automatically write or remove the completion property in the linked note.'
+        'When you check/uncheck a task checkbox in any note, automatically write or clear the completion property in the linked note.'
       )
       .addToggle((toggle) =>
         toggle

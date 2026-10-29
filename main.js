@@ -186,6 +186,8 @@ var ChecklistSyncer = class {
       } else {
         if (typeof val === "string") {
           if (val.trim().length > 0) return true;
+        } else if (typeof val === "boolean") {
+          if (val === true) return true;
         } else {
           return true;
         }
@@ -362,8 +364,20 @@ var ChecklistSyncer = class {
             frontmatter[propToSet] = this.getFormattedDate();
           }
         } else {
+          let cleared = false;
           for (const prop of properties) {
-            delete frontmatter[prop];
+            if (prop in frontmatter) {
+              if (typeof frontmatter[prop] === "boolean") {
+                frontmatter[prop] = false;
+              } else {
+                frontmatter[prop] = null;
+              }
+              cleared = true;
+            }
+          }
+          if (!cleared && properties.length > 0) {
+            const propToClear = properties[0] || "completed_date";
+            frontmatter[propToClear] = null;
           }
         }
       });
@@ -451,7 +465,7 @@ var CheckLinkSettingsTab = class extends import_obsidian2.PluginSettingTab {
       })
     );
     new import_obsidian2.Setting(containerEl).setName("Bidirectional sync (Two-way)").setDesc(
-      "When you check/uncheck a task checkbox in any note, automatically write or remove the completion property in the linked note."
+      "When you check/uncheck a task checkbox in any note, automatically write or clear the completion property in the linked note."
     ).addToggle(
       (toggle) => toggle.setValue(this.plugin.settings.bidirectional).onChange(async (value) => {
         this.plugin.settings.bidirectional = value;

@@ -37,7 +37,7 @@ Manually going back to your overview notes, syllabus, or daily trackers to tick 
 2. **🎯 Precision Wikilink Targeting**: Resolves true note destinations, avoiding false positives even if multiple notes share similar names in different folders.
 3. **📁 Folder & Nested Subfolder Agnostic**: Works whether your overview file lives in the same folder, a parent folder, or the root of your vault. The note does **not** need any link back to the overview!
 4. **🛡️ 100% Non-Destructive**: Normal tasks (e.g. `- [ ] Buy groceries`, `- [ ] Review design`) are completely untouched.
-5. **🔄 Optional Two-Way (Bidirectional) Sync**: Clicking `- [ ]` $\rightarrow$ `- [x]` in any note can automatically write the completion date straight into the linked note's YAML frontmatter.
+5. **🔄 Optional Two-Way (Bidirectional) Sync**: Clicking `- [ ]` $\rightarrow$ `- [x]` in any note can automatically write the completion date straight into the linked note's YAML frontmatter. Unchecking clears the value while preserving the property.
 
 ---
 
@@ -56,12 +56,12 @@ Define multiple properties at once (comma-separated):
 * e.g. `completed_date, completed_at, published_date, finish_date`
 * If a note has **any** of these properties set, CheckLink treats it as completed.
 * **Smart Frontmatter Assignment**: When checking a task via bidirectional sync, CheckLink checks if the note already has one of your configured properties (e.g. `published_date:` in a book note), and updates that existing property. If none exist yet, it populates the primary (first) property.
-* **Clean Uncheck**: When unchecking a task, all matching completion properties are automatically removed from the note.
+* **Clean Uncheck**: When unchecking a task, all matching completion properties have their values automatically cleared (preserving property keys in your note frontmatter).
 
 ### 3. Bidirectional (Two-Way) Synchronization
 Turn on **Bidirectional Sync** in settings:
 * Check a task box in your dashboard: CheckLink writes `completed_date: YYYY-MM-DD` (or `completed: true`) directly into that note's frontmatter!
-* Uncheck the task box: CheckLink cleans up and removes the completion property.
+* Uncheck the task box: CheckLink clears the completion property value.
 
 ---
 
@@ -73,7 +73,7 @@ Turn on **Bidirectional Sync** in settings:
 | **Completion criteria** | How completion is determined (`exists`, `truthy`, or `value`) | `exists` |
 | **Expected property value** | Value required when using `value` criteria (e.g. `done`) | `done` |
 | **Checklist match mode** | `contains` (anywhere in task line) or `strict` (only link) | `contains` |
-| **Bidirectional sync** | Clicking task checkboxes in notes updates the target note's frontmatter | `false` |
+| **Bidirectional sync** | Clicking task checkboxes in notes updates/clears the target note's frontmatter property | `false` |
 | **Completion date format** | Date format for two-way sync (`YYYY-MM-DD`, `YYYY-MM-DD HH:mm:ss`, `ISO`) | `YYYY-MM-DD` |
 | **Excluded folders** | Folders ignored during sync (e.g. `.trash, templates, archive`) | `.trash, .obsidian, templates` |
 | **Show notifications** | Displays Obsidian notice popups when tasks are auto-updated | `false` |
