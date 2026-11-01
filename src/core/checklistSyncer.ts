@@ -54,8 +54,21 @@ export class ChecklistSyncer {
     const files = this.app.vault.getMarkdownFiles();
     for (const file of files) {
       if (this.isExcluded(file.path)) continue;
+      if (!this.settings.autoCreateProperty && !this.hasCompletionProperty(file)) continue;
       this.completionStateCache.set(file.path, this.isFileCompleted(file));
     }
+  }
+
+  /**
+   * Checks whether a file has any of the configured completion properties in its frontmatter
+   */
+  public hasCompletionProperty(file: TFile): boolean {
+    const cache = this.app.metadataCache.getFileCache(file);
+    const frontmatter = cache?.frontmatter;
+    if (!frontmatter) return false;
+
+    const properties = this.getCompletionProperties();
+    return properties.some((prop) => prop in frontmatter);
   }
 
   /**
@@ -163,6 +176,13 @@ export class ChecklistSyncer {
    */
   public async handleMetadataChange(file: TFile): Promise<void> {
     if (this.isExcluded(file.path)) return;
+
+    if (!this.settings.autoCreateProperty && !this.hasCompletionProperty(file)) {
+      if (this.completionStateCache.has(file.path)) {
+        this.completionStateCache.delete(file.path);
+      }
+      return;
+    }
 
     const newCompleted = this.isFileCompleted(file);
     const prevCompleted = this.completionStateCache.get(file.path);
@@ -307,26 +327,39 @@ export class ChecklistSyncer {
   public async updateFileFrontmatterCompletion(targetFile: TFile, completed: boolean): Promise<void> {
     try {
       const properties = this.getCompletionProperties();
+
+      // If note does not already have any completion property and auto-create is disabled, skip it
+      if (!this.settings.autoCreateProperty && !this.hasCompletionProperty(targetFile)) {
+        return;
+      }
+
       this.programmaticModifications.add(targetFile.path);
 
       await this.app.fileManager.processFrontMatter(targetFile, (frontmatter) => {
-        if (completed) {
-          // 1. If target file already has one of the configured properties, update that one
-          let propToSet = properties[0] || 'completed_date';
-          for (const prop of properties) {
-            if (prop in frontmatter) {
-              propToSet = prop;
-              break;
-            }
+        // 1. If target file already has one of the configured properties, update that one
+        let propToSet: string | undefined;
+        for (const prop of properties) {
+          if (prop in frontmatter) {
+            propToSet = prop;
+            break;
           }
+        }
+
+        // Double check: if no completion property exists and auto-create is disabled, don't modify
+        if (!propToSet && !this.settings.autoCreateProperty) {
+          return;
+        }
+
+        if (completed) {
+          const targetProp = propToSet || properties[0] || 'completed_date';
 
           if (this.settings.propertyMatchMode === 'value') {
-            frontmatter[propToSet] = this.settings.expectedValue;
+            frontmatter[targetProp] = this.settings.expectedValue;
           } else if (this.settings.propertyMatchMode === 'truthy') {
-            frontmatter[propToSet] = true;
+            frontmatter[targetProp] = true;
           } else {
             // Default: 'exists' (date format)
-            frontmatter[propToSet] = this.getFormattedDate();
+            frontmatter[targetProp] = this.getFormattedDate();
           }
         } else {
           // Unchecking: Clear the value of configured completion properties instead of deleting them
@@ -341,7 +374,7 @@ export class ChecklistSyncer {
               cleared = true;
             }
           }
-          if (!cleared && properties.length > 0) {
+          if (!cleared && this.settings.autoCreateProperty && properties.length > 0) {
             const propToClear = properties[0] || 'completed_date';
             frontmatter[propToClear] = null;
           }
@@ -376,6 +409,7 @@ export class ChecklistSyncer {
 
     for (const file of files) {
       if (this.isExcluded(file.path)) continue;
+      if (!this.settings.autoCreateProperty && !this.hasCompletionProperty(file)) continue;
       scannedNotes++;
 
       const isCompleted = this.isFileCompleted(file);

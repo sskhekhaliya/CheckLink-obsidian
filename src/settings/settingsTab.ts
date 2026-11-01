@@ -96,6 +96,8 @@ export class CheckLinkSettingsTab extends PluginSettingTab {
       );
 
     // 5. Two-way / Bidirectional Sync
+    let autoCreateSetting: Setting | null = null;
+
     new Setting(containerEl)
       .setName('Bidirectional sync (Two-way)')
       .setDesc(
@@ -107,10 +109,29 @@ export class CheckLinkSettingsTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.bidirectional = value;
             await this.plugin.saveSettings();
+            if (autoCreateSetting) {
+              autoCreateSetting.settingEl.toggle(this.plugin.settings.bidirectional);
+            }
           })
       );
 
-    // 6. Date Format for Bidirectional
+    // 6. Auto-create property if missing
+    autoCreateSetting = new Setting(containerEl)
+      .setName('Auto-create completion property')
+      .setDesc(
+        'When checking a task, automatically create the completion property in the linked note if it does not already exist. When disabled (recommended), notes without existing completion properties are left untouched.'
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.autoCreateProperty)
+          .onChange(async (value) => {
+            this.plugin.settings.autoCreateProperty = value;
+            await this.plugin.saveSettings();
+          })
+      );
+    autoCreateSetting.settingEl.toggle(this.plugin.settings.bidirectional);
+
+    // 7. Date Format for Bidirectional
     new Setting(containerEl)
       .setName('Completion date format')
       .setDesc('Format used when writing completion date back into frontmatter.')

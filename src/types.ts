@@ -25,6 +25,9 @@ export interface CheckLinkSettings {
   bidirectional: boolean;
   dateFormat: DateFormatOption;
 
+  // Whether to automatically create the completion property in target frontmatter if it does not already exist
+  autoCreateProperty: boolean;
+
   // Folders to exclude from being scanned/updated
   excludedFolders: string[];
 
@@ -39,6 +42,7 @@ export const DEFAULT_SETTINGS: CheckLinkSettings = {
   matchMode: 'contains',
   bidirectional: true,
   dateFormat: 'YYYY-MM-DD',
+  autoCreateProperty: false,
   excludedFolders: ['.trash', '.obsidian', 'templates'],
   showNotices: false
 };

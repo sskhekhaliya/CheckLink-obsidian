@@ -33,6 +33,7 @@ var DEFAULT_SETTINGS = {
   matchMode: "contains",
   bidirectional: true,
   dateFormat: "YYYY-MM-DD",
+  autoCreateProperty: false,
   excludedFolders: [".trash", ".obsidian", "templates"],
   showNotices: false
 };
@@ -145,8 +146,19 @@ var ChecklistSyncer = class {
     const files = this.app.vault.getMarkdownFiles();
     for (const file of files) {
       if (this.isExcluded(file.path)) continue;
+      if (!this.settings.autoCreateProperty && !this.hasCompletionProperty(file)) continue;
       this.completionStateCache.set(file.path, this.isFileCompleted(file));
     }
+  }
+  /**
+   * Checks whether a file has any of the configured completion properties in its frontmatter
+   */
+  hasCompletionProperty(file) {
+    const cache = this.app.metadataCache.getFileCache(file);
+    const frontmatter = cache?.frontmatter;
+    if (!frontmatter) return false;
+    const properties = this.getCompletionProperties();
+    return properties.some((prop) => prop in frontmatter);
   }
   /**
    * Checks whether a path is in an excluded directory
@@ -235,6 +247,12 @@ var ChecklistSyncer = class {
    */
   async handleMetadataChange(file) {
     if (this.isExcluded(file.path)) return;
+    if (!this.settings.autoCreateProperty && !this.hasCompletionProperty(file)) {
+      if (this.completionStateCache.has(file.path)) {
+        this.completionStateCache.delete(file.path);
+      }
+      return;
+    }
     const newCompleted = this.isFileCompleted(file);
     const prevCompleted = this.completionStateCache.get(file.path);
     if (prevCompleted !== void 0 && prevCompleted === newCompleted) {
@@ -346,22 +364,29 @@ var ChecklistSyncer = class {
   async updateFileFrontmatterCompletion(targetFile, completed) {
     try {
       const properties = this.getCompletionProperties();
+      if (!this.settings.autoCreateProperty && !this.hasCompletionProperty(targetFile)) {
+        return;
+      }
       this.programmaticModifications.add(targetFile.path);
       await this.app.fileManager.processFrontMatter(targetFile, (frontmatter) => {
-        if (completed) {
-          let propToSet = properties[0] || "completed_date";
-          for (const prop of properties) {
-            if (prop in frontmatter) {
-              propToSet = prop;
-              break;
-            }
+        let propToSet;
+        for (const prop of properties) {
+          if (prop in frontmatter) {
+            propToSet = prop;
+            break;
           }
+        }
+        if (!propToSet && !this.settings.autoCreateProperty) {
+          return;
+        }
+        if (completed) {
+          const targetProp = propToSet || properties[0] || "completed_date";
           if (this.settings.propertyMatchMode === "value") {
-            frontmatter[propToSet] = this.settings.expectedValue;
+            frontmatter[targetProp] = this.settings.expectedValue;
           } else if (this.settings.propertyMatchMode === "truthy") {
-            frontmatter[propToSet] = true;
+            frontmatter[targetProp] = true;
           } else {
-            frontmatter[propToSet] = this.getFormattedDate();
+            frontmatter[targetProp] = this.getFormattedDate();
           }
         } else {
           let cleared = false;
@@ -375,7 +400,7 @@ var ChecklistSyncer = class {
               cleared = true;
             }
           }
-          if (!cleared && properties.length > 0) {
+          if (!cleared && this.settings.autoCreateProperty && properties.length > 0) {
             const propToClear = properties[0] || "completed_date";
             frontmatter[propToClear] = null;
           }
@@ -404,6 +429,7 @@ var ChecklistSyncer = class {
     let scannedNotes = 0;
     for (const file of files) {
       if (this.isExcluded(file.path)) continue;
+      if (!this.settings.autoCreateProperty && !this.hasCompletionProperty(file)) continue;
       scannedNotes++;
       const isCompleted = this.isFileCompleted(file);
       this.completionStateCache.set(file.path, isCompleted);
@@ -464,14 +490,27 @@ var CheckLinkSettingsTab = class extends import_obsidian2.PluginSettingTab {
         await this.plugin.saveSettings();
       })
     );
+    let autoCreateSetting = null;
     new import_obsidian2.Setting(containerEl).setName("Bidirectional sync (Two-way)").setDesc(
       "When you check/uncheck a task checkbox in any note, automatically write or clear the completion property in the linked note."
     ).addToggle(
       (toggle) => toggle.setValue(this.plugin.settings.bidirectional).onChange(async (value) => {
         this.plugin.settings.bidirectional = value;
         await this.plugin.saveSettings();
+        if (autoCreateSetting) {
+          autoCreateSetting.settingEl.toggle(this.plugin.settings.bidirectional);
+        }
       })
     );
+    autoCreateSetting = new import_obsidian2.Setting(containerEl).setName("Auto-create completion property").setDesc(
+      "When checking a task, automatically create the completion property in the linked note if it does not already exist. When disabled (recommended), notes without existing completion properties are left untouched."
+    ).addToggle(
+      (toggle) => toggle.setValue(this.plugin.settings.autoCreateProperty).onChange(async (value) => {
+        this.plugin.settings.autoCreateProperty = value;
+        await this.plugin.saveSettings();
+      })
+    );
+    autoCreateSetting.settingEl.toggle(this.plugin.settings.bidirectional);
     new import_obsidian2.Setting(containerEl).setName("Completion date format").setDesc("Format used when writing completion date back into frontmatter.").addDropdown(
       (dropdown) => dropdown.addOption("YYYY-MM-DD", "YYYY-MM-DD (e.g. 2026-10-29)").addOption("YYYY-MM-DD HH:mm:ss", "YYYY-MM-DD HH:mm:ss").addOption("ISO", "Full ISO Timestamp").setValue(this.plugin.settings.dateFormat).onChange(async (value) => {
         this.plugin.settings.dateFormat = value;
